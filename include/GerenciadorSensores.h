@@ -23,9 +23,9 @@
 /**
  * @brief Núcleo do sistema SensorLog: gerencia sensores e leituras.
  *
- * Mantém um catálogo de sensores cadastrados (std::map) e um histórico
- * de leituras importadas (std::vector). Delega análises estatísticas e
- * geração de gráficos ao módulo Python via InterfacePython.
+ * Mantém um catálogo de sensores cadastrados (std::map), onde cada
+ * sensor encapsula seu próprio histórico de leituras. Delega análises
+ * estatísticas e geração de gráficos ao módulo Python via InterfacePython.
  *
  * Todas as operações de entrada/saída com o usuário são realizadas nos
  * métodos públicos desta classe, que são invocados pelo menu em main.cpp.
@@ -97,14 +97,13 @@ public:
     /**
      * @brief [Opção 7] Remove uma leitura pelo seu ID.
      *
-     * Solicita o ID da leitura ao usuário. Remove-a do vetor interno
-     * se encontrada; exibe erro caso contrário.
+     * Solicita o ID da leitura ao usuário. Procura em todos os sensores e
+     * remove a leitura se encontrada; exibe erro caso contrário.
      */
     void removerLeitura();
 
 private:
     std::map<std::string, Sensor> m_sensores; ///< Sensores cadastrados (chave: ID)
-    std::vector<Leitura>          m_leituras; ///< Histórico de leituras importadas
     InterfacePython               m_python;   ///< Interface com o módulo Python
     int                           m_proxId;   ///< Próximo ID disponível para leituras
 

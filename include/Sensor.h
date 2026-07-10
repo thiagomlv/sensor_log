@@ -14,6 +14,8 @@
 
 #include <string>
 #include <stdexcept>
+#include <vector>
+#include "Leitura.h"
 
 /**
  * @brief Tipos de sensores suportados pelo sistema.
@@ -74,9 +76,26 @@ public:
      */
     static TipoSensor parseTipo(const std::string& s);
 
+    /**
+     * @brief Adiciona uma nova leitura ao sensor.
+     */
+    void adicionarLeitura(const Leitura& leitura);
+
+    /**
+     * @brief Retorna as leituras deste sensor.
+     */
+    const std::vector<Leitura>& getLeituras() const;
+
+    /**
+     * @brief Remove uma leitura pelo ID.
+     * @return true se encontrada e removida, false caso contrário.
+     */
+    bool removerLeitura(int id);
+
 private:
     std::string m_id;   ///< Identificador único do sensor
     TipoSensor  m_tipo; ///< Tipo do sensor
+    std::vector<Leitura> m_leituras; ///< Histórico de leituras deste sensor
 };
 
 #endif // SENSOR_H

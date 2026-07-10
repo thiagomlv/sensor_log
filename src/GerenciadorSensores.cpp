@@ -41,17 +41,19 @@ bool GerenciadorSensores::sensorExiste(const std::string& id) const {
 
 std::vector<double> GerenciadorSensores::coletarValores(const std::string& sensorId) const {
     std::vector<double> vals;
-    for (const auto& l : m_leituras)
-        if (l.getSensorId() == sensorId)
+    if (sensorExiste(sensorId)) {
+        for (const auto& l : m_sensores.at(sensorId).getLeituras())
             vals.push_back(l.getValor());
+    }
     return vals;
 }
 
 std::vector<std::string> GerenciadorSensores::coletarTimestamps(const std::string& sensorId) const {
     std::vector<std::string> ts;
-    for (const auto& l : m_leituras)
-        if (l.getSensorId() == sensorId)
+    if (sensorExiste(sensorId)) {
+        for (const auto& l : m_sensores.at(sensorId).getLeituras())
             ts.push_back(l.getTimestamp());
+    }
     return ts;
 }
 
@@ -182,7 +184,7 @@ void GerenciadorSensores::importarCSV() {
             continue;
         }
 
-        m_leituras.emplace_back(sensorId, toLower(tipoStr), valor, unidade, timestamp, m_proxId++);
+        m_sensores.at(sensorId).adicionarLeitura(Leitura(sensorId, toLower(tipoStr), valor, unidade, timestamp, m_proxId++));
         ++importadas;
     }
 
@@ -193,7 +195,15 @@ void GerenciadorSensores::importarCSV() {
 // -- Opcao 3: Listar leituras -------------------------------------------------
 
 void GerenciadorSensores::listarLeituras() const {
-    if (m_leituras.empty()) {
+    bool hasLeituras = false;
+    for (const auto& par : m_sensores) {
+        if (!par.second.getLeituras().empty()) {
+            hasLeituras = true;
+            break;
+        }
+    }
+
+    if (!hasLeituras) {
         std::cout << "  Nenhuma leitura armazenada.\n";
         return;
     }
@@ -208,14 +218,16 @@ void GerenciadorSensores::listarLeituras() const {
               << "Timestamp\n";
     std::cout << std::string(70, '-') << "\n";
 
-    for (const auto& l : m_leituras) {
-        std::cout << std::left
-                  << std::setw(5)  << l.getId()
-                  << std::setw(14) << l.getSensorId()
-                  << std::setw(6)  << l.getTipo()
-                  << std::setw(10) << std::fixed << std::setprecision(2) << l.getValor()
-                  << std::setw(8)  << l.getUnidade()
-                  << l.getTimestamp() << "\n";
+    for (const auto& par : m_sensores) {
+        for (const auto& l : par.second.getLeituras()) {
+            std::cout << std::left
+                      << std::setw(5)  << l.getId()
+                      << std::setw(14) << l.getSensorId()
+                      << std::setw(6)  << l.getTipo()
+                      << std::setw(10) << std::fixed << std::setprecision(2) << l.getValor()
+                      << std::setw(8)  << l.getUnidade()
+                      << l.getTimestamp() << "\n";
+        }
     }
     std::cout << "\n";
 }
@@ -272,9 +284,10 @@ void GerenciadorSensores::detectarAnomalias() const {
 
     // Coleta as leituras do sensor para exibir junto com os resultados
     std::vector<const Leitura*> leiturasSensor;
-    for (const auto& l : m_leituras)
-        if (l.getSensorId() == id)
+    if (sensorExiste(id)) {
+        for (const auto& l : m_sensores.at(id).getLeituras())
             leiturasSensor.push_back(&l);
+    }
 
     try {
         ResultadoAnomalias r = m_python.detectarAnomalias(vals, k);
@@ -340,11 +353,6 @@ void GerenciadorSensores::gerarGrafico() const {
 // -- Opcao 7: Remover leitura -------------------------------------------------
 
 void GerenciadorSensores::removerLeitura() {
-    if (m_leituras.empty()) {
-        std::cout << "  Nenhuma leitura para remover.\n";
-        return;
-    }
-
     int idRemover = 0;
     std::cout << "  ID da leitura a remover: ";
     if (!(std::cin >> idRemover)) {
@@ -355,14 +363,18 @@ void GerenciadorSensores::removerLeitura() {
     }
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-    auto it = std::find_if(m_leituras.begin(), m_leituras.end(),
-                           [idRemover](const Leitura& l){ return l.getId() == idRemover; });
+    bool removido = false;
+    for (auto& par : m_sensores) {
+        if (par.second.removerLeitura(idRemover)) {
+            removido = true;
+            break;
+        }
+    }
 
-    if (it == m_leituras.end()) {
+    if (!removido) {
         std::cout << "  [ERRO] Leitura com ID " << idRemover << " nao encontrada.\n";
         return;
     }
 
-    m_leituras.erase(it);
     std::cout << "  [OK] Leitura " << idRemover << " removida com sucesso.\n";
 }
